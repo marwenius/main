@@ -1,0 +1,31 @@
+# Posts that helped me get it working in the end:
+# https://github.com/prisma/prisma/discussions/14187#discussioncomment-3099013
+# https://github.com/NginxProxyManager/nginx-proxy-manager/issues/3305#issuecomment-2140003939
+
+version: "3"
+services:
+  linkwarden:
+    container_name: linkwarden
+    image: ghcr.io/linkwarden/linkwarden:v2.7.1
+    restart: unless-stopped
+    volumes:
+      - /volume1/docker/linkwarden/data:/data/data
+    environment:
+      - DATABASE_URL=postgresql://linkwarden:PASSWORD@localhost:5432/linkwarden-db?schema=public
+      - NEXTAUTH_SECRET=SECRET
+      - NEXTAUTH_URL=http://localhost/api/v1/auth
+      - NEXT_PUBLIC_DISABLE_REGISTRATION=
+    ports:
+      - "3000:3000"
+    network_mode: host
+  linkwarden-db:
+    container_name: linkwarden-db
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=linkwarden
+      - POSTGRES_PASSWORD=PASSWORD
+      - POSTGRES_DB=linkwarden-db
+    volumes:
+      - /volume1/docker/linkwarden/db:/var/lib/postgresql/data
+    network_mode: host

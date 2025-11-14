@@ -1,0 +1,5 @@
+# config/archives/excludes.pref.chroot
+
+Package: libreoffice* firefox-esr* live-task-localisation*
+Pin: release a=*
+Pin-Priority: -1

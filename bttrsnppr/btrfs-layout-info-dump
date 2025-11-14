@@ -1,0 +1,150 @@
+##############################
+
+# Calamares: mount.conf
+
+extraMounts:
+    - device: proc
+      fs: proc
+      mountPoint: /proc
+    - device: sys
+      fs: sysfs
+      mountPoint: /sys
+    - device: /dev
+      mountPoint: /dev
+      options: [ bind ]
+    - device: tmpfs
+      fs: tmpfs
+      mountPoint: /run
+    - device: /run/udev
+      mountPoint: /run/udev
+      options: [ bind ]
+    - device: efivarfs
+      fs: efivarfs
+      mountPoint: /sys/firmware/efi/efivars
+      efi: true
+    - device: /dev/pts
+      mountPoint: /dev/pts
+      options: [ bind ]
+      # /dev/pts is required by apt for storing the logs
+
+btrfsSubvolumes:
+    - mountPoint: /
+      subvolume: /@
+    - mountPoint: /.snapshots
+      subvolume: /@snapshots
+    - mountPoint: /home
+      subvolume: /@home
+    - mountPoint: /srv
+      subvolume: /@srv
+    - mountPoint: /var/log
+      subvolume: /@log
+    - mountPoint: /var/cache
+      subvolume: /@cache
+    - mountPoint: /var/tmp
+      subvolume: /@tmp
+    - mountPoint: /opt
+      subvolume: /@opt
+    - mountPoint: /var/lib/libvirt
+      subvolume: /@libvirt
+    - mountPoint: /var/lib/AccountsService
+      subvolume: /@AccountsService
+    - mountPoint: /var/lib/lightdm
+      subvolume: /@lightdm
+
+mountOptions:
+    - filesystem: default
+      options: [ defaults ]
+    - filesystem: efi
+      options: [ defaults, umask=0077 ]
+    - filesystem: btrfs
+      options: [ defaults, noatime, compress-force=zstd:3, discard=async, space_cache=v2 ]
+    - filesystem: btrfs_swap
+      options: [ defaults, noatime ]
+
+##############################
+
+user@user-virtualbox:~$ cat /etc/fstab 
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a device; this may
+# be used with UUID= as a more robust way to name devices that works even if
+# disks are added and removed. See fstab(5).
+#
+# <file system>             <mount point>  <type>  <options>  <dump>  <pass>
+UUID=BE05-78EC                            /boot/efi                vfat    defaults 0 2
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /                        btrfs   subvol=/@,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /.snapshots              btrfs   subvol=/@snapshots,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /home                    btrfs   subvol=/@home,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /srv                     btrfs   subvol=/@srv,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/log                 btrfs   subvol=/@log,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/cache               btrfs   subvol=/@cache,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/tmp                 btrfs   subvol=/@tmp,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /opt                     btrfs   subvol=/@opt,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/lib/libvirt         btrfs   subvol=/@libvirt,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/lib/AccountsService btrfs   subvol=/@AccountsService,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /var/lib/lightdm         btrfs   subvol=/@lightdm,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /swap                    btrfs   subvol=/@swap,defaults,noatime,compress-force=zstd:3,discard=async,space_cache=v2 0 0
+/swap/swapfile                            swap                     swap    defaults 0 0
+
+##############################
+
+# Compresses data after changes to compress(-force), can take a long time, causes a lot of I/O load, should not be applied to snapshots, may be useful for data-heavy subvolumes (e.g., /home).
+
+sudo btrfs filesystem defragment -r -v -czstd /home
+
+##############################
+
+user@user-virtualbox:~$ sudo btrfs subvolume list /
+ID 256 gen 198 top level 5 path @
+ID 257 gen 181 top level 5 path @snapshots
+ID 258 gen 186 top level 5 path @home
+ID 259 gen 105 top level 5 path @srv
+ID 260 gen 196 top level 5 path @log
+ID 261 gen 183 top level 5 path @cache
+ID 262 gen 184 top level 5 path @tmp
+ID 263 gen 105 top level 5 path @opt
+ID 264 gen 105 top level 5 path @libvirt
+ID 265 gen 183 top level 5 path @AccountsService
+ID 266 gen 183 top level 5 path @lightdm
+ID 267 gen 105 top level 5 path @swap
+ID 269 gen 126 top level 258 path @home/.snapshots
+ID 275 gen 175 top level 257 path @snapshots/1/snapshot
+
+##############################
+
+user@user-virtualbox:~$ sudo mount -av
+/boot/efi                : already mounted
+/                        : ignored
+/.snapshots              : already mounted
+/home                    : already mounted
+/srv                     : already mounted
+/var/log                 : already mounted
+/var/cache               : already mounted
+/var/tmp                 : already mounted
+/opt                     : already mounted
+/var/lib/libvirt         : already mounted
+/var/lib/AccountsService : already mounted
+/var/lib/lightdm         : already mounted
+/swap                    : already mounted
+swap                     : ignored
+
+##############################
+
+user@user-virtualbox:~$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda      8:0    0   50G  0 disk 
+├─sda1   8:1    0    1G  0 part /boot/efi
+└─sda2   8:2    0   49G  0 part /var/log
+                                /var/tmp
+                                /var/lib/libvirt
+                                /var/lib/lightdm
+                                /var/lib/AccountsService
+                                /swap
+                                /var/cache
+                                /srv
+                                /opt
+                                /home
+                                /.snapshots
+                                /
+
+##############################

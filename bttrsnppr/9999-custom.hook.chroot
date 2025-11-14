@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -e
+
+### preparations ###
+
+sudo apt update
+sudo apt install -y \
+  aptitude \
+  tasksel \
+  flatpak \
+  extrepo
+
+### debian standard system utilities ###
+
+sudo apt install -y $(echo $(aptitude search ~pstandard ~prequired ~pimportant -F%p) | cat)
+
+# or
+# apt install aptitude -y
+# aptitude search ~pstandard ~prequired ~pimportant -F%p > standard.txt
+# apt install -y $(echo $(cat standard.txt))
+# rm standard.txt
+
+# or
+# apt install tasksel -y
+# tasksel --new-install install standard
+
+### extrepo + firefox ###
+
+sudo extrepo enable mozilla
+
+sudo apt update
+
+sudo apt install firefox firefox-l10n-de -t mozilla -y
+
+### flatpak ###
+
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# flatpak install flathub org.gnome.Boxes -y -v

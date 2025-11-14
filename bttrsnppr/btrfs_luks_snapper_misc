@@ -1,0 +1,102 @@
+###################
+
+sudo cryptsetup convert /dev/xxx --type luks2
+
+sudo cryptsetup luksChangeKey --pbkdf-force-iterations XYZ /dev/xxx --key-slot 0 --pbkdf pbkdf2
+sudo cryptsetup luksChangeKey --pbkdf-force-iterations XYZ /dev/xxx --key-slot 0 --pbkdf pbkdf2
+
+###################
+
+https://github.com/kdave/btrfsmaintenance
+
+sudo systemctl enable --now btrfs-scrub.timer
+sudo systemctl enable --now btrfs-trim.timer # change to weekly
+
+###################
+
+# mount luks btrfs root (inside system with open luks)
+
+sudo mkdir -p /mnt/mountluksbtrfs
+sudo mount /dev/mapper/luks-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /mnt/mountluksbtrfs
+cd /mnt/mountluksbtrfs
+ls
+sudo btrfs subvolume create /mnt/mountluksbtrfs/@dummy
+sudo mkdir -p /.dummy
+sudo nano /etc/fstab 
+sudo systemctl daemon-reload
+sudo mount -av
+
+###################
+
+sudo apt install -y snapper-gui inotify-tools git build-essential gawk
+
+cd /
+sudo umount /.snapshots
+sudo rm -rf /.snapshots
+
+sudo snapper -c root create-config /
+sudo snapper -c home create-config /home
+
+sudo snapper -c root set-config ALLOW_USERS=$USER ALLOW_GROUPS=sudo SYNC_ACL=yes TIMELINE_CREATE=no NUMBER_LIMIT=30
+sudo snapper -c home set-config ALLOW_USERS=$USER ALLOW_GROUPS=sudo SYNC_ACL=yes TIMELINE_CREATE=no NUMBER_LIMIT=30
+
+sudo btrfs subvolume delete /.snapshots
+sudo mkdir /.snapshots
+sudo mount -av
+
+sudo systemctl disable snapper-timeline.timer
+sudo systemctl disable snapper-boot.timer
+sudo systemctl enable --now snapper-cleanup.timer
+
+sudo snapper list-configs
+
+snapper -c root get-config
+snapper -c home get-config
+
+snapper -c root ls
+snapper -c home ls
+
+snapper -c root create -t single -d "main root snapshot"
+sudo btrfs subvolume set-default $(sudo btrfs inspect-internal rootid /.snapshots/1/snapshot) /
+
+# btrfs
+
+cd ~/Downloads/
+
+git clone https://github.com/Antynea/grub-btrfs.git
+cd grub-btrfs/
+sed -i.bkp '/^#GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS=/a GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="rd.live.overlay.overlayfs=1"' config
+sudo make install
+
+sudo systemctl enable --now grub-btrfsd.service
+sudo update-grub2
+
+curl -L https://gist.githubusercontent.com/imthenachoman/f722f6d08dfb404fed2a3b2d83263118/raw/e80365b525d425d5fea83d31009b2590a699c8bd/80snapper -o 80snapper
+curl -L https://gist.githubusercontent.com/imthenachoman/f722f6d08dfb404fed2a3b2d83263118/raw/e80365b525d425d5fea83d31009b2590a699c8bd/dpkg-pre-post-snapper.sh -o dpkg-pre-post-snapper.sh
+sudo mv /etc/apt/apt.conf.d/80snapper /etc/apt/apt.conf.d/80snapper_bak
+sudo sed -i 's/^/#/g' /etc/apt/apt.conf.d/80snapper_bak
+sudo sed -i 's/\/path\/to\/dpkg-pre-post-snapper.sh/\/usr\/local\/bin\/dpkg-pre-post-snapper.sh/g' 80snapper
+sudo cp 80snapper /etc/apt/apt.conf.d/80snapper
+sudo cp dpkg-pre-post-snapper.sh /usr/local/bin/dpkg-pre-post-snapper.sh
+sudo chmod +x /usr/local/bin/dpkg-pre-post-snapper.sh
+
+sudo apt install -y --reinstall rolldice
+
+##############################
+
+sudo snapper --ambit classic rollback
+sudo reboot
+sudo update-grub2
+sudo btrfs property get -ts /
+sudo btrfs subvolume get-default /
+snapper delete X-Y
+snapper delete Z
+sudo mkdir -p /.snapshots/1
+sudo btrfs subvolume snapshot /.snapshots/XYZ/snapshot /.snapshots/1/snapshot
+sudo cp /.snapshots/XYZ/info.xml /.snapshots/1/info.xml
+sudo nano info.xml # remove number!
+sudo btrfs subvolume set-default $(sudo btrfs inspect-internal rootid /.snapshots/1/snapshot) /
+sudo btrfs property get -ts /.snapshots/1/snapshot
+sudo btrfs property set -ts /.snapshots/1/snapshot ro true
+sudo update-grub2
+sudo reboot

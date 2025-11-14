@@ -1,0 +1,5 @@
+# https://gist.github.com/imthenachoman/f722f6d08dfb404fed2a3b2d83263118
+# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=770938
+
+DPkg::Pre-Invoke { "/path/to/dpkg-pre-post-snapper.sh pre"; };
+DPkg::Post-Invoke { "/path/to/dpkg-pre-post-snapper.sh post"; };
